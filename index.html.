@@ -1,0 +1,594 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Program Menentukan Rute Perjalanan</title>
+
+<!-- Leaflet Map -->
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+
+/* PENGATURAN DASAR */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #F5FBFF;
+  color: #174B68;
+}
+
+/* HEADER */
+header {
+  background: linear-gradient(135deg, #176B9A, #42A5D5);
+  color: white;
+  padding: 30px 20px;
+  text-align: center;
+}
+
+header h1 {
+  font-size: 25px;
+  margin-bottom: 10px;
+}
+
+header p {
+  font-size: 14px;
+  color: #DDF3FC;
+  line-height: 1.6;
+}
+
+/* KONTEN */
+.container {
+  max-width: 750px;
+  margin: auto;
+  padding: 18px;
+}
+
+/* KARTU */
+.panel {
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 15px #176B9A15;
+  border: 1px solid #D9EDF7;
+}
+
+h2 {
+  font-size: 19px;
+  color: #176B9A;
+  margin-bottom: 16px;
+}
+
+/* FORM */
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: bold;
+  margin: 14px 0 8px;
+  color: #176B9A;
+}
+
+select {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #B9E5F5;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #F5FBFF;
+  color: #174B68;
+}
+
+/* TOMBOL */
+button {
+  width: 100%;
+  padding: 15px;
+  background: #42A5D5;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: bold;
+  margin-top: 18px;
+  cursor: pointer;
+}
+
+button:active {
+  background: #176B9A;
+}
+
+/* PETA */
+#map {
+  height: 350px;
+  width: 100%;
+  border-radius: 13px;
+  border: 2px solid #B9E5F5;
+  z-index: 1;
+}
+
+/* HASIL */
+.result {
+  display: none;
+  background: #EAF7FD;
+  border: 1px solid #B9E5F5;
+  padding: 16px;
+  border-radius: 11px;
+  margin-top: 16px;
+  line-height: 1.9;
+  color: #174B68;
+  overflow-wrap: anywhere;
+}
+
+.result strong {
+  color: #176B9A;
+}
+
+/* INFORMASI */
+.info {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #486779;
+}
+
+/* FOOTER */
+footer {
+  text-align: center;
+  padding: 22px;
+  font-size: 12px;
+  color: #176B9A;
+  background: #EAF7FD;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- BAGIAN JUDUL -->
+<header>
+  <h1>ROUTE FINDER</h1>
+  <p>Program Menentukan Rute Perjalanan</p>
+  <p>Temukan jalur perjalanan terpendek dengan mudah</p>
+</header>
+
+<div class="container">
+
+  <!-- FORM PERJALANAN -->
+  <div class="panel">
+
+    <h2>Rencanakan Perjalanan</h2>
+
+    <label>Lokasi Keberangkatan</label>
+    <select id="awal"></select>
+
+    <label>Lokasi Tujuan</label>
+    <select id="tujuan"></select>
+
+    <button onclick="cariRute()">
+      TENTUKAN RUTE TERPENDEK
+    </button>
+
+    <div class="result" id="hasil"></div>
+
+  </div>
+
+  <!-- PETA -->
+  <div class="panel">
+
+    <h2>Peta Perjalanan</h2>
+    <div id="map"></div>
+
+  </div>
+
+  <!-- INFORMASI PROGRAM -->
+  <div class="panel">
+
+    <h2>Tentang Program</h2>
+
+    <p class="info">
+      Program Menentukan Rute Perjalanan merupakan
+      aplikasi sederhana untuk mencari jalur terpendek
+      antara dua lokasi.
+    </p>
+
+    <br>
+
+    <p class="info">
+      Program ini menggunakan Algoritma Dijkstra
+      untuk menghitung jarak terpendek berdasarkan
+      jaringan lokasi dan bobot jarak yang tersedia.
+    </p>
+
+  </div>
+
+  <!-- INFORMASI ALGORITMA -->
+  <div class="panel">
+
+    <h2>Algoritma Dijkstra</h2>
+
+    <p class="info">
+      Dijkstra adalah algoritma yang digunakan untuk
+      menentukan jalur terpendek dari satu titik ke
+      titik lainnya dalam sebuah graf dengan bobot
+      nonnegatif.
+    </p>
+
+  </div>
+
+</div>
+
+<footer>
+  <p>PROJECT INFORMATIKA</p>
+  <p>Program Menentukan Rute Perjalanan</p>
+  <p>Algoritma Dijkstra | 2026</p>
+</footer>
+
+
+<!-- LIBRARY PETA -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+// =================================
+// 1. DATA LOKASI
+// =================================
+
+const lokasi = {
+
+  "Pantai Losari": [-5.1442, 119.4050],
+
+  "Fort Rotterdam": [-5.1330, 119.4059],
+
+  "Karebosi": [-5.1365, 119.4120],
+
+  "Masjid 99 Kubah": [-5.1300, 119.4025],
+
+  "Trans Studio": [-5.1570, 119.3970],
+
+  "Mall Panakkukang": [-5.1590, 119.4470],
+
+  "Universitas Hasanuddin": [-5.1310, 119.4870]
+
+};
+
+
+// =================================
+// 2. DATA GRAF DAN JARAK
+// =================================
+
+const graf = {
+
+  "Pantai Losari": {
+    "Fort Rotterdam": 1.5,
+    "Trans Studio": 2.5,
+    "Masjid 99 Kubah": 2.0
+  },
+
+  "Fort Rotterdam": {
+    "Pantai Losari": 1.5,
+    "Karebosi": 1.8,
+    "Masjid 99 Kubah": 1.0
+  },
+
+  "Karebosi": {
+    "Fort Rotterdam": 1.8,
+    "Mall Panakkukang": 6.0,
+    "Universitas Hasanuddin": 7.0
+  },
+
+  "Masjid 99 Kubah": {
+    "Pantai Losari": 2.0,
+    "Fort Rotterdam": 1.0,
+    "Trans Studio": 3.0
+  },
+
+  "Trans Studio": {
+    "Pantai Losari": 2.5,
+    "Masjid 99 Kubah": 3.0,
+    "Mall Panakkukang": 7.0
+  },
+
+  "Mall Panakkukang": {
+    "Trans Studio": 7.0,
+    "Karebosi": 6.0,
+    "Universitas Hasanuddin": 5.0
+  },
+
+  "Universitas Hasanuddin": {
+    "Karebosi": 7.0,
+    "Mall Panakkukang": 5.0
+  }
+
+};
+
+
+// =================================
+// 3. MEMBUAT PETA
+// =================================
+
+const map = L.map("map").setView(
+  [-5.143, 119.420], 13
+);
+
+L.tileLayer(
+  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  {
+    attribution: "&copy; OpenStreetMap"
+  }
+).addTo(map);
+
+
+// =================================
+// 4. MENAMPILKAN MARKER
+// =================================
+
+Object.entries(lokasi).forEach(([nama, koordinat]) => {
+
+  L.marker(koordinat)
+    .addTo(map)
+    .bindPopup(nama);
+
+});
+
+
+// =================================
+// 5. MENGISI PILIHAN LOKASI
+// =================================
+
+const awal = document.getElementById("awal");
+
+const tujuan = document.getElementById("tujuan");
+
+Object.keys(lokasi).forEach(nama => {
+
+  awal.add(new Option(nama, nama));
+
+  tujuan.add(new Option(nama, nama));
+
+});
+
+awal.value = "Pantai Losari";
+
+tujuan.value = "Fort Rotterdam";
+
+
+// =================================
+// 6. GARIS RUTE
+// =================================
+
+let garisRute = null;
+
+
+// =================================
+// 7. ALGORITMA DIJKSTRA
+// =================================
+
+function dijkstra(mulai, akhir) {
+
+  let jarak = {};
+
+  let sebelumnya = {};
+
+  let dikunjungi = new Set();
+
+
+  // Mengatur jarak awal
+  Object.keys(graf).forEach(nama => {
+
+    jarak[nama] = Infinity;
+
+    sebelumnya[nama] = null;
+
+  });
+
+  jarak[mulai] = 0;
+
+
+  // Proses pencarian jalur
+  while (true) {
+
+    let sekarang = null;
+
+    let jarakTerkecil = Infinity;
+
+
+    // Mencari titik dengan jarak terkecil
+    for (let nama in jarak) {
+
+      if (
+        !dikunjungi.has(nama) &&
+        jarak[nama] < jarakTerkecil
+      ) {
+
+        jarakTerkecil = jarak[nama];
+
+        sekarang = nama;
+
+      }
+
+    }
+
+
+    if (sekarang === null) break;
+
+    if (sekarang === akhir) break;
+
+
+    dikunjungi.add(sekarang);
+
+
+    // Memeriksa semua tetangga
+    for (let tetangga in graf[sekarang]) {
+
+      let jarakBaru =
+        jarak[sekarang] + graf[sekarang][tetangga];
+
+
+      if (jarakBaru < jarak[tetangga]) {
+
+        jarak[tetangga] = jarakBaru;
+
+        sebelumnya[tetangga] = sekarang;
+
+      }
+
+    }
+
+  }
+
+
+  // Memeriksa apakah rute ditemukan
+  if (jarak[akhir] === Infinity) {
+
+    return null;
+
+  }
+
+
+  // Menyusun jalur perjalanan
+  let rute = [];
+
+  let sekarang = akhir;
+
+  while (sekarang !== null) {
+
+    rute.unshift(sekarang);
+
+    sekarang = sebelumnya[sekarang];
+
+  }
+
+
+  return {
+
+    rute: rute,
+
+    jarak: jarak[akhir]
+
+  };
+
+}
+
+
+// =================================
+// 8. FUNGSI MENENTUKAN RUTE
+// =================================
+
+function cariRute() {
+
+  const dari = awal.value;
+
+  const ke = tujuan.value;
+
+  const hasil = document.getElementById("hasil");
+
+
+  // Memeriksa pilihan lokasi
+  if (dari === ke) {
+
+    alert("Lokasi awal dan tujuan tidak boleh sama!");
+
+    return;
+
+  }
+
+
+  // Menjalankan algoritma
+  const hasilRute = dijkstra(dari, ke);
+
+
+  if (!hasilRute) {
+
+    hasil.innerHTML = "Rute tidak ditemukan.";
+
+    hasil.style.display = "block";
+
+    return;
+
+  }
+
+
+  // Mengambil koordinat rute
+  const koordinatRute = hasilRute.rute.map(
+
+    nama => lokasi[nama]
+
+  );
+
+
+  // Menghapus garis sebelumnya
+  if (garisRute) {
+
+    map.removeLayer(garisRute);
+
+  }
+
+
+  // Menggambar garis perjalanan
+  garisRute = L.polyline(
+
+    koordinatRute,
+
+    {
+
+      color: "#42A5D5",
+
+      weight: 6,
+
+      opacity: 0.9
+
+    }
+
+  ).addTo(map);
+
+
+  // Menyesuaikan tampilan peta
+  map.fitBounds(garisRute.getBounds(), {
+
+    padding: [30, 30]
+
+  });
+
+
+  // Menampilkan hasil perjalanan
+  hasil.innerHTML = `
+
+    <strong>✓ Rute Berhasil Ditemukan!</strong><br>
+
+    Lokasi Awal: ${dari}<br>
+
+    Lokasi Tujuan: ${ke}<br>
+
+    Jalur Perjalanan:
+    ${hasilRute.rute.join(" → ")}<br>
+
+    Total Jarak:
+    ${hasilRute.jarak.toFixed(1)} KM
+
+  `;
+
+
+  hasil.style.display = "block";
+
+}
+
+
+// =================================
+// 9. MENAMPILKAN RUTE AWAL
+// =================================
+
+cariRute();
+
+</script>
+
+</body>
+      </html>
+      
